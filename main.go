@@ -17,8 +17,6 @@ func main() {
     router.Use(commonMiddleware)
 	router.HandleFunc("/healthcheck", healthCheck).Methods("GET")
     router.HandleFunc("/headings", handleHeadings).Methods("GET")
-    router.HandleFunc("/links", handleLinks).Methods("GET")
-	router.HandleFunc("/summaries", handleSummary).Methods("GET")
 
 	headersOk := handlers.AllowedHeaders([]string{"Authorization"})
 	originsOk := handlers.AllowedOrigins([]string{"http://localhost:3000"})
@@ -33,12 +31,6 @@ func commonMiddleware(next http.Handler) http.Handler {
         w.Header().Set("Access-Control-Allow-Origin", "*")
         next.ServeHTTP(w, r)
     })
-}
-
-type Result struct{
-    heading []string `json:"headings"`
-    link []string `json:"links"`
-    summary []string `json:"summary"`
 }
 
 func handleHeadings(w http.ResponseWriter, r *http.Request) {
@@ -78,67 +70,6 @@ func handleHeadings(w http.ResponseWriter, r *http.Request) {
 
     
 	json.NewEncoder(w).Encode(out)
-}
-
-func handleLinks(w http.ResponseWriter, r *http.Request) {
-	vars := r.URL.Query()
-	searchQuery := vars.Get("query")
-    searchQuery = strings.Replace(searchQuery, " ", "+", -1)
-    var links []string
-    
-    fmt.Println(searchQuery)
-    response, err := http.Get("https://www.jotform.com/help/keyword_search.php?rpp=0&search="+searchQuery)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer response.Body.Close()
-
-    // Create a goquery document from the HTTP response
-    document, err := goquery.NewDocumentFromReader(response.Body)
-    if err != nil {
-        log.Fatal("Error loading HTTP response body. ", err)
-    }
-
-    document.Find(".chapterTitle").Each(func(i int, s *goquery.Selection) {
-        // class, _ := s.Attr("class")
-        href, _ := s.Attr("href")
-        links = append(links,href)
-        // fmt.Println(s.Text())
-        
-    })
-
-
-	json.NewEncoder(w).Encode(links)
-}
-
-
-func handleSummary(w http.ResponseWriter, r *http.Request) {
-	vars := r.URL.Query()
-	searchQuery := vars.Get("query")
-    searchQuery = strings.Replace(searchQuery, " ", "+", -1)
-    var summary []string
-    
-    response, err := http.Get("https://www.jotform.com/help/keyword_search.php?rpp=0&search="+searchQuery)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer response.Body.Close()
-
-    // Create a goquery document from the HTTP response
-    document, err := goquery.NewDocumentFromReader(response.Body)
-    if err != nil {
-        log.Fatal("Error loading HTTP response body. ", err)
-    }
-
-
-    document.Find(".chapterSummary").Each(func(i int, s *goquery.Selection) {
-        // class, _ := s.Attr("class")
-        summary = append(summary,s.Text())
-        // fmt.Println(s.Text())
-        
-    })
-
-	json.NewEncoder(w).Encode(summary)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
